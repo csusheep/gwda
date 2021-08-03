@@ -6,13 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	giDevice "github.com/electricbubble/gidevice"
 	"net"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 	"time"
+
+	"math"
+
+	giDevice "github.com/electricbubble/gidevice"
 )
 
 // NewDriver creates new remote client, this will also start a new session.
@@ -888,4 +891,66 @@ func (wd *remoteWD) WaitWithTimeout(condition Condition, timeout time.Duration) 
 
 func (wd *remoteWD) Wait(condition Condition) error {
 	return wd.WaitWithTimeoutAndInterval(condition, DefaultWaitTimeout, DefaultWaitInterval)
+}
+
+/*------ uusense ------*/
+/*------ uusense ------*/
+
+func (wd *remoteWD) Dragfromtoforduration(fromX, fromY, toX, toY float64, duration float64) (err error) {
+	// @"http://localhost:%@/uusense/dragfromtoforduration"
+	data := map[string]interface{}{
+		"fromX": fromX,
+		"fromY": fromY,
+		"toX":   toX,
+		"toY":   toY,
+	}
+
+	deltaX := math.Abs(toX - fromX)
+	deltaY := math.Abs(toY - fromY)
+	distance := math.Sqrt(deltaX*deltaX + deltaY*deltaY)
+	velocity := distance / duration
+	data["velocity"] = velocity
+
+	if duration < 0 {
+		data["duration"] = 1.0
+	} else {
+		data["duration"] = duration
+	}
+	_, err = wd.executePost(data, "/uusense/dragfromtoforduration")
+	return
+}
+
+func (wd *remoteWD) DoubleMove(aX1, aY1, aX2, aY2, bX1, bY1, bX2, bY2 float64, duration float64) (err error) {
+	// http://localhost:%@/uusense/doubleMove
+	data := map[string]interface{}{
+		"aX1": aX1,
+		"aY1": aY1,
+		"aX2": aX2,
+		"aY2": aY2,
+		"bX1": bX1,
+		"bY1": bY1,
+		"bX2": bX2,
+		"bY2": bY2,
+	}
+	if duration < 0 {
+		data["duration"] = 1.0
+	} else {
+		data["duration"] = duration
+	}
+	_, err = wd.executePost(data, "/uusense/doubleMove")
+	return
+}
+
+func (wd *remoteWD) SlidePath(points []map[string]int, duration float64) (err error) {
+	// http://localhost:%@/uusense/move
+	data := map[string]interface{}{
+		"points": points,
+	}
+	if duration < 0 {
+		data["duration"] = 1.0
+	} else {
+		data["duration"] = duration
+	}
+	_, err = wd.executePost(data, "/uusense/move")
+	return
 }
