@@ -954,3 +954,26 @@ func (wd *remoteWD) SlidePath(points []map[string]int, duration float64) (err er
 	_, err = wd.executePost(data, "/uusense/move")
 	return
 }
+
+func (wd *remoteWD) ScreenshotUUSense(shotType int, X float64, Y float64, width float64, height float64, quality int) (err error) {
+	// http://localhost:%@/uusense/screenshot
+	full := 0
+	if width <= 0 || height <= 0 {
+		full = 1
+	}
+	qualitylocal := "JPG"
+	if shotType == 0 {
+		qualitylocal = "PNG"
+	}
+	data := map[string]interface{}{
+		"points":  full,
+		"quality": quality,
+		"x":       X,
+		"y":       Y,
+		"width":   width,
+		"height":  height,
+		"type":    qualitylocal,
+	}
+	_, err = wd.executePost(data, "uusense/screenshot")
+	return
+}
