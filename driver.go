@@ -977,3 +977,13 @@ func (wd *remoteWD) ScreenshotUUSense(shotType int, X float64, Y float64, width 
 	_, err = wd.executePost(data, "uusense/screenshot")
 	return
 }
+
+func (wd *remoteWD) InputUUSense(test string) (err error) {
+	// http://localhost:%@/uusense/globalInput
+
+	data := map[string]interface{}{
+		"text": test,
+	}
+	_, err = wd.executePost(data, "uusense/globalInput")
+	return
+}
