@@ -1086,7 +1086,7 @@ type WebDriver interface {
 	Dragfromtoforduration(fromX, fromY, toX, toY float64, duration float64) (err error)
 	DoubleMove(aX1, aY1, aX2, aY2, bX1, bY1, bX2, bY2 float64, duration float64) (err error)
 	SlidePath(points []map[string]int, duration float64) (err error)
-	ScreenshotUUSense(shotType int, X float64, Y float64, width float64, height float64, quality int) (err error)
+	ScreenshotUUSense(shotType int, X float64, Y float64, width float64, height float64, quality int) (raw *bytes.Buffer, err error)
 	InputUUSense(test string) (err error)
 }
 

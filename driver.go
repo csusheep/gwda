@@ -955,7 +955,7 @@ func (wd *remoteWD) SlidePath(points []map[string]int, duration float64) (err er
 	return
 }
 
-func (wd *remoteWD) ScreenshotUUSense(shotType int, X float64, Y float64, width float64, height float64, quality int) (err error) {
+func (wd *remoteWD) ScreenshotUUSense(shotType int, X float64, Y float64, width float64, height float64, quality int) (raw *bytes.Buffer, err error) {
 	// http://localhost:%@/uusense/screenshot
 	full := 0
 	if width <= 0 || height <= 0 {
@@ -974,7 +974,9 @@ func (wd *remoteWD) ScreenshotUUSense(shotType int, X float64, Y float64, width 
 		"height":  height,
 		"type":    qualitylocal,
 	}
-	_, err = wd.executePost(data, "uusense/screenshot")
+	var screenshotData rawResponse
+	screenshotData, err = wd.executePost(data, "uusense/screenshot")
+	raw = bytes.NewBuffer(screenshotData)
 	return
 }
 
