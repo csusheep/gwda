@@ -16,7 +16,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -44,25 +43,22 @@ func newRequest(method string, url string, rawBody []byte) (request *http.Reques
 	return
 }
 
-var _mUSB sync.Mutex
-
-func executeHTTP(method string, rawURL string, rawBody []byte, usbHTTPClient ...*http.Client) (rawResp rawResponse, err error) {
+func executeHTTP(method string, rawURL string, rawBody []byte, httpCli *http.Client) (rawResp rawResponse, err error) {
 	debugLog(fmt.Sprintf("--> %s %s\n%s", method, rawURL, rawBody))
 	var req *http.Request
 	if req, err = newRequest(method, rawURL, rawBody); err != nil {
 		return
 	}
 
-	tmpHTTPClient := HTTPClient
-	if len(usbHTTPClient) != 0 {
-		tmpHTTPClient = usbHTTPClient[0]
-		_mUSB.Lock()
-		defer _mUSB.Unlock()
+	tmpCli := HTTPClient
+	if httpCli != nil {
+		tmpCli = httpCli
 	}
+	tmpCli.Timeout = 0
 
 	start := time.Now()
 	var resp *http.Response
-	if resp, err = tmpHTTPClient.Do(req); err != nil {
+	if resp, err = tmpCli.Do(req); err != nil {
 		return nil, err
 	}
 	defer func() {
@@ -87,24 +83,6 @@ func executeHTTP(method string, rawURL string, rawBody []byte, usbHTTPClient ...
 	return
 }
 
-func keepAlive(d WebDriver) {
-	go func() {
-		if DefaultKeepAliveInterval <= 0 {
-			return
-		}
-		ticker := time.NewTicker(DefaultKeepAliveInterval)
-		for {
-			select {
-			case <-ticker.C:
-				if _, err := d.Status(); err != nil {
-					ticker.Stop()
-					return
-				}
-			}
-		}
-	}()
-}
-
 var debugFlag = false
 
 // SetDebug sets debug mode
@@ -126,6 +104,7 @@ func convertToHTTPClient(_conn net.Conn) *http.Client {
 				return _conn, nil
 			},
 		},
+		Timeout: 0,
 	}
 }
 
@@ -371,6 +350,7 @@ type DeviceInfo struct {
 	UserInterfaceStyle string `json:"userInterfaceStyle"`
 	Name               string `json:"name"`
 	IsSimulator        bool   `json:"isSimulator"`
+	ThermalState       int    `json:"thermalState"`
 }
 
 type Location struct {
@@ -583,6 +563,16 @@ func (opt SourceOption) WithFormatAsXml() SourceOption {
 // WithFormatAsDescription Application elements tree in form of internal XCTest debugDescription string
 func (opt SourceOption) WithFormatAsDescription() SourceOption {
 	opt["format"] = "description"
+	return opt
+}
+
+// WithScope Allows to provide XML scope.
+//  only `xml` is supported.
+func (opt SourceOption) WithScope(scope string) SourceOption {
+	if vFormat, ok := opt["format"]; ok && vFormat != "xml" {
+		return opt
+	}
+	opt["scope"] = scope
 	return opt
 }
 
@@ -1081,6 +1071,9 @@ type WebDriver interface {
 	Wait(condition Condition) error
 
 	GetMjpegHTTPClient() *http.Client
+
+	// Close inner connections properly
+	Close() error
 
 	//uusense
 	Dragfromtoforduration(fromX, fromY, toX, toY float64, duration float64) (err error)
