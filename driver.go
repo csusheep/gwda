@@ -41,6 +41,30 @@ func NewDriver(capabilities Capabilities, urlPrefix string, mjpegPort ...int) (d
 	return wd, nil
 }
 
+func NewDriverWithOutNewSession(capabilities Capabilities, urlPrefix string, mjpegPort ...int) (driver WebDriver, err error) {
+	if len(mjpegPort) == 0 {
+		mjpegPort = []int{defaultMjpegPort}
+	}
+	wd := new(remoteWD)
+	if wd.urlPrefix, err = url.Parse(urlPrefix); err != nil {
+		return nil, err
+	}
+
+	var info StatusInfo
+	if info, err = wd.getDeviceInfo(); err != nil {
+		return nil, err
+	}
+
+	wd.sessionId = info.SessionID
+
+	if wd.mjpegConn, err = net.Dial("tcp", fmt.Sprintf("%s:%d", wd.urlPrefix.Hostname(), mjpegPort[0])); err != nil {
+		return nil, err
+	}
+	wd.mjpegClient = convertToHTTPClient(wd.mjpegConn)
+
+	return wd, nil
+}
+
 // NewUSBDriver creates new client via USB connected device, this will also start a new session.
 func NewUSBDriver(capabilities Capabilities, device ...Device) (driver WebDriver, err error) {
 	if len(device) == 0 {
@@ -1045,5 +1069,45 @@ func (wd *remoteWD) InputUUSense(test string) (err error) {
 		"text": test,
 	}
 	_, err = wd.executePost(data, "uusense/globalInput")
+	return
+}
+
+type StatusInfo struct {
+	Value struct {
+		Message string `json:"message"`
+		State   string `json:"state"`
+		Os      struct {
+			Code                string `json:"code"`
+			Version             string `json:"version"`
+			TestmanagerdVersion int    `json:"testmanagerdVersion"`
+			Name                string `json:"name"`
+			SdkVersion          string `json:"sdkVersion"`
+			UserName            string `json:"userName"`
+		} `json:"os"`
+		Ios struct {
+			IP string `json:"ip"`
+		} `json:"ios"`
+		Ready bool `json:"ready"`
+		Build struct {
+			Time                    string `json:"time"`
+			ProductBundleIdentifier string `json:"productBundleIdentifier"`
+		} `json:"build"`
+	} `json:"value"`
+	SessionID string `json:"sessionId"`
+}
+
+func (wd *remoteWD) getDeviceInfo() (ret StatusInfo, err error) {
+	var rawResp rawResponse
+	if rawResp, err = wd.executeGet("/status"); err != nil {
+		return StatusInfo{}, err
+	}
+
+	err = json.Unmarshal(rawResp, &ret)
+	fmt.Println(ret)
+	if err != nil {
+		fmt.Println("错误")
+		fmt.Println(err.Error())
+		return
+	}
 	return
 }
