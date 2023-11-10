@@ -51,7 +51,7 @@ func NewDriverWithOutNewSession(capabilities Capabilities, urlPrefix string, mjp
 	}
 
 	var info StatusInfo
-	if info, err = wd.getDeviceInfo(); err != nil {
+	if info, err = wd.GetDeviceInfo(); err != nil {
 		return nil, err
 	}
 
@@ -1096,7 +1096,7 @@ type StatusInfo struct {
 	SessionID string `json:"sessionId"`
 }
 
-func (wd *remoteWD) getDeviceInfo() (ret StatusInfo, err error) {
+func (wd *remoteWD) GetDeviceInfo() (ret StatusInfo, err error) {
 	var rawResp rawResponse
 	if rawResp, err = wd.executeGet("/status"); err != nil {
 		return StatusInfo{}, err
@@ -1109,5 +1109,6 @@ func (wd *remoteWD) getDeviceInfo() (ret StatusInfo, err error) {
 		fmt.Println(err.Error())
 		return
 	}
+	wd.sessionId = ret.SessionID
 	return
 }
